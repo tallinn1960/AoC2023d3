@@ -91,7 +91,11 @@ fn scan_for_numbers(s: &str) -> Vec<(usize, usize, u32)> {
                 .unwrap_or(s.len());
             // this is safe because we know that the slice is a number
             let number = s[start..end].parse::<u32>().ok().unwrap();
-            result.push((start.saturating_sub(1), min(end.saturating_add(1), s.len()), number));
+            result.push((
+                start.saturating_sub(1),
+                min(end.saturating_add(1), s.len()),
+                number,
+            ));
         }
     }
     result
