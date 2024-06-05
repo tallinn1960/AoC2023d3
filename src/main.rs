@@ -49,13 +49,10 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
     let parsed_schema = std::iter::once("".to_string())
         .chain(schema.lines().map(|r| r.expect("line read failed")))
         .chain(std::iter::once("".to_string()))
-        .map(|s| {
-            let numbers = scan_for_numbers(&s);
-            (s, numbers)
-        })
+        .map(|s| (scan_for_gears(&s), scan_for_numbers(&s)))
         .collect::<Vec<_>>();
     parsed_schema.windows(3).for_each(|three_line_group| {
-        for pos in scan_for_gears(&three_line_group[1].0) {
+        for &pos in &three_line_group[1].0 {
             let found = three_line_group
                 .iter()
                 .flat_map(|line| &line.1)
