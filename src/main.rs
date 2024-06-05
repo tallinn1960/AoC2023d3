@@ -25,9 +25,11 @@ fn p1<F: BufRead>(schema: &mut F) -> u32 {
         for (start, end, number) in scan_for_numbers(&three_line_group[1]) {
             // construct a string from start..end of previous line,
             // this line, and next line
-            let s0 = &three_line_group[0][min(start, three_line_group[0].len())..min(end, three_line_group[0].len())];
+            let s0 = &three_line_group[0]
+                [min(start, three_line_group[0].len())..min(end, three_line_group[0].len())];
             let s1 = &three_line_group[1][start..end];
-            let s2 = &three_line_group[2][min(start, three_line_group[2].len())..min(end, three_line_group[2].len())];
+            let s2 = &three_line_group[2]
+                [min(start, three_line_group[2].len())..min(end, three_line_group[2].len())];
             // check for gear characters in the strings
             if s0
                 .chars()
@@ -54,7 +56,8 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
         .collect::<Vec<_>>();
     parsed_schema.windows(3).for_each(|three_line_group| {
         for pos in scan_for_gears(&three_line_group[1].0) {
-            let found = three_line_group.iter()
+            let found = three_line_group
+                .iter()
                 .flat_map(|line| &line.1)
                 .filter_map(|(start, end, number)| {
                     if pos >= *start && pos < *end {
@@ -75,41 +78,29 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
 // scan for consecutive digits in a string, record the start and end index of each sequence
 // including possibly lead and trailing char, and the number found
 fn scan_for_numbers(s: &str) -> Vec<(usize, usize, u32)> {
+    let mut enumerated_chars = s.char_indices();
     let mut result = Vec::new();
-    let mut start = None;
-    for (i, c) in s.char_indices() {
+    while let Some((i, c)) = enumerated_chars.by_ref().next() {
         if c.is_ascii_digit() {
-            if start.is_none() {
-                start = Some(i);
-            }
-        } else {
-            if let Some(start) = start {
-                // this can't fail because we know that the slice from start..i is all digits
-                let number = (&s[start..i]).parse::<u32>().ok().unwrap();
-                let start = start.saturating_sub(1);
-                let end = i.saturating_add(1).min(s.len());
-                result.push((start, end, number));
-            }
-            start = None;
+            let start = i;
+            let end = enumerated_chars
+                .by_ref()
+                .skip_while(|(_, c)| c.is_ascii_digit())
+                .next()
+                .map(|(i, _)| i)
+                .unwrap_or(s.len());
+            // this is safe because we know that the slice is a number
+            let number = s[start..end].parse::<u32>().ok().unwrap();
+            result.push((start.saturating_sub(1), min(end.saturating_add(1), s.len()), number));
         }
-    }
-    if let Some(start) = start {
-        // this can't fail because we know that the slice from start.. is all digits
-        let number = (&s[start..]).parse::<u32>().ok().unwrap();
-        let start = start.saturating_sub(1);
-        result.push((start, s.len(), number));
     }
     result
 }
 
 fn scan_for_gears(s: &str) -> Vec<usize> {
-    let mut result = Vec::new();
-    for (i, c) in s.char_indices() {
-        if is_gear_char(c) {
-            result.push(i);
-        }
-    }
-    result
+    s.char_indices()
+        .filter_map(|(i, c)| if is_gear_char(c) { Some(i) } else { None })
+        .collect()
 }
 
 fn is_gear_char(c: char) -> bool {
