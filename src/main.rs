@@ -17,20 +17,24 @@ fn main() {
 fn p1<F: BufRead>(schema: &mut F) -> u32 {
     let mut result = 0;
     // append empty lines to the beginning and end of the schema
-    let a: Vec<String> = std::iter::once("".to_string())
+    let schema: Vec<String> = std::iter::once("".to_string())
         .chain(schema.lines().map(|r| r.expect("line read failed")))
         .chain(std::iter::once("".to_string()))
         .collect();
-    a.windows(3).for_each(|w| {
-        for (start, end, number) in scan_for_numbers(&w[1]) {
+    schema.windows(3).for_each(|three_line_group| {
+        for (start, end, number) in scan_for_numbers(&three_line_group[1]) {
             // construct a string from start..end of previous line,
             // this line, and next line
-            let s0 = &w[0][min(start, w[0].len())..min(end, w[0].len())];
-            let s1 = &w[1][min(start, w[1].len())..min(end, w[1].len())];
-            let s2 = &w[2][min(start, w[2].len())..min(end, w[2].len())];
-            let s = format!("{}{}{}", s0, s1, s2);
-            // check for gear characters in the string
-            if s.chars().any(|c| is_gear_char(c)) {
+            let s0 = &three_line_group[0][min(start, three_line_group[0].len())..min(end, three_line_group[0].len())];
+            let s1 = &three_line_group[1][start..end];
+            let s2 = &three_line_group[2][min(start, three_line_group[2].len())..min(end, three_line_group[2].len())];
+            // check for gear characters in the strings
+            if s0
+                .chars()
+                .chain(s1.chars())
+                .chain(s2.chars())
+                .any(|c| is_gear_char(c))
+            {
                 result += number;
             }
         }
@@ -40,7 +44,7 @@ fn p1<F: BufRead>(schema: &mut F) -> u32 {
 
 fn p2<F: BufRead>(schema: &mut F) -> u32 {
     let mut result = 0;
-    let a = std::iter::once("".to_string())
+    let parsed_schema = std::iter::once("".to_string())
         .chain(schema.lines().map(|r| r.expect("line read failed")))
         .chain(std::iter::once("".to_string()))
         .map(|s| {
@@ -48,32 +52,25 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
             (s, numbers)
         })
         .collect::<Vec<_>>();
-    a.windows(3).for_each(|w| {
-        for pos in scan_for_gears(&w[1].0) {
-            let mut found = Vec::new();
-            for (start, end, number) in &w[1].1 {
-                if pos >= *start && pos < *end {
-                    found.push(*number);
-                }
-            }
-            for (start, end, number) in  &w[0].1 {
-                if pos >= *start && pos < *end {
-                    found.push(*number);
-                }
-            }
-            for (start, end, number) in &w[2].1 {
-                if pos >= *start && pos < *end {
-                    found.push(*number);
-                }
-            }
+    parsed_schema.windows(3).for_each(|three_line_group| {
+        for pos in scan_for_gears(&three_line_group[1].0) {
+            let found = three_line_group.iter()
+                .flat_map(|line| &line.1)
+                .filter_map(|(start, end, number)| {
+                    if pos >= *start && pos < *end {
+                        Some(*number)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
             if found.len() > 1 {
-                result += found.iter().fold(1, |acc, x| acc * x);
+                result += found.iter().fold(1, |acc, &x| acc * x);
             }
         }
     });
     result
 }
-
 
 // scan for consecutive digits in a string, record the start and end index of each sequence
 // including possibly lead and trailing char, and the number found
@@ -123,8 +120,7 @@ fn is_gear_char(c: char) -> bool {
 mod tests {
     use super::*;
 
-    static INPUT: &str = 
-"467..114..
+    static INPUT: &str = "467..114..
 ...*......
 ..35..633.
 ......#...
