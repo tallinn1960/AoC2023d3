@@ -18,7 +18,8 @@ fn p1<F: BufRead>(schema: &mut F) -> u32 {
     let mut result = 0;
     let parsed_schema = parser(schema, |s| {
         (scan_for_gears(&s, is_symbol_char), scan_for_numbers(&s))
-    });
+    })
+    .collect::<Vec<_>>();
     for three_line_group in parsed_schema.windows(3) {
         for (start, end, number) in &three_line_group[1].1 {
             if three_line_group.iter().any(|(gears, _)| {
@@ -37,7 +38,8 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
     let mut result = 0;
     let parsed_schema = parser(schema, |s| {
         (scan_for_gears(&s, is_gear_char), scan_for_numbers(&s))
-    });
+    })
+    .collect::<Vec<_>>();
     for three_line_group in parsed_schema.windows(3) {
         for &gear_pos in &three_line_group[1].0 {
             let found = three_line_group
@@ -59,7 +61,12 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
     result
 }
 
-fn parser<F: BufRead, E: Default, P: Fn(&str) -> E>(schema: &mut F, line_parser: P) -> Vec<E> {
+fn parser<'a, F, E, P>(schema: &'a mut F, line_parser: P) -> impl Iterator<Item = E> + 'a
+where
+    F: BufRead,
+    P: Fn(&str) -> E + 'a,
+    E: Default + 'a,
+{
     // We want every parsed result of a line to have a predecessor and a successor
     // thus we add default results as the first and last element.
     // We use default result elements so the line_parser does not need to handle
@@ -69,10 +76,9 @@ fn parser<F: BufRead, E: Default, P: Fn(&str) -> E>(schema: &mut F, line_parser:
             schema
                 .lines()
                 .map(|r| r.expect("line read failed"))
-                .map(|s| line_parser(&s)),
+                .map(move |s| line_parser(&s)),
         )
         .chain(std::iter::once(E::default()))
-        .collect::<Vec<_>>()
 }
 
 // scan for consecutive digits in a string, record the start and end index of each sequence
