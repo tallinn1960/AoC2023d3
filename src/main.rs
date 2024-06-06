@@ -17,26 +17,18 @@ fn main() {
 fn p1<F: BufRead>(schema: &mut F) -> u32 {
     let mut result = 0;
     // append empty lines to the beginning and end of the schema
-    let schema: Vec<String> = std::iter::once("".to_string())
+    let parsed_schema = std::iter::once("".to_string())
         .chain(schema.lines().map(|r| r.expect("line read failed")))
         .chain(std::iter::once("".to_string()))
-        .collect();
-    schema.windows(3).for_each(|three_line_group| {
-        for (start, end, number) in scan_for_numbers(&three_line_group[1]) {
-            // construct a string from start..end of previous line,
-            // this line, and next line
-            let s0 = &three_line_group[0]
-                [min(start, three_line_group[0].len())..min(end, three_line_group[0].len())];
-            let s1 = &three_line_group[1][start..end];
-            let s2 = &three_line_group[2]
-                [min(start, three_line_group[2].len())..min(end, three_line_group[2].len())];
-            // check for gear characters in the strings
-            if s0
-                .chars()
-                .chain(s1.chars())
-                .chain(s2.chars())
-                .any(|c| is_gear_char(c))
-            {
+        .map(|s| (scan_for_gears(&s, is_symbol_char), scan_for_numbers(&s)))
+        .collect::<Vec<_>>();
+    parsed_schema.windows(3).for_each(|three_line_group| {
+        for (start, end, number) in &three_line_group[1].1 {
+            if three_line_group.iter().any(|(gears, _)| {
+                gears
+                    .iter()
+                    .any(|&gear_pos| gear_pos >= *start && gear_pos < *end)
+            }) {
                 result += number;
             }
         }
@@ -49,15 +41,15 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
     let parsed_schema = std::iter::once("".to_string())
         .chain(schema.lines().map(|r| r.expect("line read failed")))
         .chain(std::iter::once("".to_string()))
-        .map(|s| (scan_for_gears(&s), scan_for_numbers(&s)))
+        .map(|s| (scan_for_gears(&s, is_gear_char), scan_for_numbers(&s)))
         .collect::<Vec<_>>();
     parsed_schema.windows(3).for_each(|three_line_group| {
-        for &pos in &three_line_group[1].0 {
+        for &gear_pos in &three_line_group[1].0 {
             let found = three_line_group
                 .iter()
                 .flat_map(|line| &line.1)
                 .filter_map(|(start, end, number)| {
-                    if pos >= *start && pos < *end {
+                    if gear_pos >= *start && gear_pos < *end {
                         Some(*number)
                     } else {
                         None
@@ -98,13 +90,17 @@ fn scan_for_numbers(s: &str) -> Vec<(usize, usize, u32)> {
     result
 }
 
-fn scan_for_gears(s: &str) -> Vec<usize> {
+fn scan_for_gears<F: Fn(char) -> bool>(s: &str, is_a_match: F) -> Vec<usize> {
     s.char_indices()
-        .filter_map(|(i, c)| if is_gear_char(c) { Some(i) } else { None })
+        .filter_map(|(i, c)| if is_a_match(c) { Some(i) } else { None })
         .collect()
 }
 
 fn is_gear_char(c: char) -> bool {
+    c == '*'
+}
+
+fn is_symbol_char(c: char) -> bool {
     c != '.' && !c.is_ascii_digit()
 }
 
