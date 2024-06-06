@@ -22,7 +22,7 @@ fn p1<F: BufRead>(schema: &mut F) -> u32 {
         .chain(std::iter::once("".to_string()))
         .map(|s| (scan_for_gears(&s, is_symbol_char), scan_for_numbers(&s)))
         .collect::<Vec<_>>();
-    parsed_schema.windows(3).for_each(|three_line_group| {
+    for three_line_group in parsed_schema.windows(3) {
         for (start, end, number) in &three_line_group[1].1 {
             if three_line_group.iter().any(|(gears, _)| {
                 gears
@@ -32,7 +32,7 @@ fn p1<F: BufRead>(schema: &mut F) -> u32 {
                 result += number;
             }
         }
-    });
+    };
     result
 }
 
@@ -43,7 +43,7 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
         .chain(std::iter::once("".to_string()))
         .map(|s| (scan_for_gears(&s, is_gear_char), scan_for_numbers(&s)))
         .collect::<Vec<_>>();
-    parsed_schema.windows(3).for_each(|three_line_group| {
+    for three_line_group in parsed_schema.windows(3) {
         for &gear_pos in &three_line_group[1].0 {
             let found = three_line_group
                 .iter()
@@ -60,7 +60,7 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
                 result += found.iter().fold(1, |acc, &x| acc * x);
             }
         }
-    });
+    }
     result
 }
 
