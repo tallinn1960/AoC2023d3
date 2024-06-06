@@ -1,5 +1,7 @@
 use std::{cmp::min, io::BufRead};
 
+pub mod yt;
+
 pub fn p1<F: BufRead>(schema: &mut F) -> u32 {
     let mut result = 0;
     let parsed_schema = parser(schema, |s| {
