@@ -16,7 +16,6 @@ fn main() {
 
 fn p1<F: BufRead>(schema: &mut F) -> u32 {
     let mut result = 0;
-    // append empty lines to the beginning and end of the schema
     let parsed_schema = parser(schema, |s| {
         (scan_for_gears(&s, is_symbol_char), scan_for_numbers(&s))
     });
@@ -60,11 +59,19 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
     result
 }
 
-fn parser<F: BufRead, E, P: Fn(&str) -> E>(schema: &mut F, line_parser: P) -> Vec<E> {
-    std::iter::once("".to_string())
-        .chain(schema.lines().map(|r| r.expect("line read failed")))
-        .chain(std::iter::once("".to_string()))
-        .map(|s| line_parser(&s))
+fn parser<F: BufRead, E: Default, P: Fn(&str) -> E>(schema: &mut F, line_parser: P) -> Vec<E> {
+    // We want every parsed result of a line to have a predecessor and a successor
+    // thus we add default results as the first and last element.
+    // We use default result elements so the line_parser does not need to handle
+    // empty lines.
+    std::iter::once(E::default())
+        .chain(
+            schema
+                .lines()
+                .map(|r| r.expect("line read failed"))
+                .map(|s| line_parser(&s)),
+        )
+        .chain(std::iter::once(E::default()))
         .collect::<Vec<_>>()
 }
 
@@ -82,13 +89,15 @@ fn scan_for_numbers(s: &str) -> Vec<(usize, usize, u32)> {
                 .next()
                 .map(|(i, _)| i)
                 .unwrap_or(s.len());
-            // this is safe because we know that the slice is a number
-            let number = s[start..end].parse::<u32>().ok().unwrap();
-            result.push((
-                start.saturating_sub(1),
-                min(end.saturating_add(1), s.len()),
-                number,
-            ));
+            // the slice is a number, but let's protect against numbers
+            // which are too big for u32, which we ignore
+            if let Ok(number) = s[start..end].parse::<u32>() {
+                result.push((
+                    start.saturating_sub(1),
+                    min(end.saturating_add(1), s.len()),
+                    number,
+                ));
+            };
         }
     }
     result
