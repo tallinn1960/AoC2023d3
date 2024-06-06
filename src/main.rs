@@ -17,11 +17,9 @@ fn main() {
 fn p1<F: BufRead>(schema: &mut F) -> u32 {
     let mut result = 0;
     // append empty lines to the beginning and end of the schema
-    let parsed_schema = std::iter::once("".to_string())
-        .chain(schema.lines().map(|r| r.expect("line read failed")))
-        .chain(std::iter::once("".to_string()))
-        .map(|s| (scan_for_gears(&s, is_symbol_char), scan_for_numbers(&s)))
-        .collect::<Vec<_>>();
+    let parsed_schema = parser(schema, |s| {
+        (scan_for_gears(&s, is_symbol_char), scan_for_numbers(&s))
+    });
     for three_line_group in parsed_schema.windows(3) {
         for (start, end, number) in &three_line_group[1].1 {
             if three_line_group.iter().any(|(gears, _)| {
@@ -32,17 +30,15 @@ fn p1<F: BufRead>(schema: &mut F) -> u32 {
                 result += number;
             }
         }
-    };
+    }
     result
 }
 
 fn p2<F: BufRead>(schema: &mut F) -> u32 {
     let mut result = 0;
-    let parsed_schema = std::iter::once("".to_string())
-        .chain(schema.lines().map(|r| r.expect("line read failed")))
-        .chain(std::iter::once("".to_string()))
-        .map(|s| (scan_for_gears(&s, is_gear_char), scan_for_numbers(&s)))
-        .collect::<Vec<_>>();
+    let parsed_schema = parser(schema, |s| {
+        (scan_for_gears(&s, is_gear_char), scan_for_numbers(&s))
+    });
     for three_line_group in parsed_schema.windows(3) {
         for &gear_pos in &three_line_group[1].0 {
             let found = three_line_group
@@ -62,6 +58,14 @@ fn p2<F: BufRead>(schema: &mut F) -> u32 {
         }
     }
     result
+}
+
+fn parser<F: BufRead, E, P: Fn(&str) -> E>(schema: &mut F, line_parser: P) -> Vec<E> {
+    std::iter::once("".to_string())
+        .chain(schema.lines().map(|r| r.expect("line read failed")))
+        .chain(std::iter::once("".to_string()))
+        .map(|s| line_parser(&s))
+        .collect::<Vec<_>>()
 }
 
 // scan for consecutive digits in a string, record the start and end index of each sequence
