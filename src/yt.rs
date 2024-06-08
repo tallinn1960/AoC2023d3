@@ -1,13 +1,15 @@
 use std::{collections::HashSet, io::BufRead};
 
+type SetOfPoints<E> = HashSet<E>;
+
 struct PartNumber {
-    value: i64,
-    points: HashSet<(i64, i64)>,
+    value: u64,
+    points: SetOfPoints<(i64, i64)>,
 }
 
 impl PartNumber {
     fn new(row: i64, col: i64, ch: char) -> Self {
-        let points = HashSet::from([
+        let points = SetOfPoints::from([
             (row - 1, col - 1),
             (row - 1, col),
             (row - 1, col + 1),
@@ -19,21 +21,30 @@ impl PartNumber {
             (row + 1, col + 1),
         ]);
         Self {
-            value: ch.to_digit(10).unwrap() as i64,
+            value: ch.to_digit(10).unwrap() as u64,
             points,
         }
     }
 
     fn add_digit(&mut self, row: i64, col: i64, ch: char) {
-        self.value = self.value * 10 + ch.to_digit(10).unwrap() as i64;
+        self.value = self.value * 10 + ch.to_digit(10).unwrap() as u64;
         self.points
             .extend([(row - 1, col + 1), (row, col + 1), (row + 1, col + 1)])
     }
 }
 
-pub fn p1<F: BufRead>(f: F) -> i64 {
+pub fn p1<F: BufRead>(f: F) -> u64 {
+    let (part_numbers, syms) = parse(f);
+    part_numbers
+        .iter()
+        .filter(|part_number| part_number.points.intersection(&syms).next().is_some())
+        .map(|part_number| part_number.value)
+        .sum()
+}
+
+fn parse<F: BufRead>(f: F) -> (Vec<PartNumber>, SetOfPoints<(i64, i64)>) {
     let mut part_numbers: Vec<PartNumber> = Vec::new();
-    let mut syms = HashSet::new();
+    let mut syms = SetOfPoints::new();
     for (row, line) in f.lines().enumerate() {
         let line = line.expect("failed to read line");
         let mut current_number: Option<PartNumber> = None;
@@ -54,11 +65,7 @@ pub fn p1<F: BufRead>(f: F) -> i64 {
             }
         }
     }
-    part_numbers
-        .iter()
-        .filter(|part_number| part_number.points.intersection(&syms).next().is_some())
-        .map(|part_number| part_number.value)
-        .sum()
+    (part_numbers, syms)
 }
 
 #[cfg(test)]
