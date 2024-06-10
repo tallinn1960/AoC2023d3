@@ -79,7 +79,7 @@ fn scan_for_numbers(s: &str) -> Vec<(usize, usize, u32)> {
             let start = i;
             let end = enumerated_chars
                 .by_ref()
-                .find(|(_, c)| c.is_ascii_digit())
+                .find(|(_, c)| !c.is_ascii_digit())
                 .map(|(i, _)| i)
                 .unwrap_or(s.len());
             // the slice is a number, but let's protect against numbers
@@ -132,6 +132,7 @@ mod tests {
         let mut f = BufReader::new(INPUT.as_bytes());
         assert_eq!(p1(&mut f), 4361);
     }
+
     #[test]
     fn test_p2() {
         let mut f = BufReader::new(INPUT.as_bytes());
