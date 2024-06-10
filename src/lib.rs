@@ -1,6 +1,6 @@
 use std::{cmp::min, io::BufRead};
 
-pub fn p1<F: BufRead>(schema: &mut F) -> u32 {
+pub fn p1(schema: &mut impl BufRead) -> u32 {
     let mut result = 0;
     let parsed_schema = parser(schema, |s| {
         (scan_for_gears(s, is_symbol_char), scan_for_numbers(s))
@@ -20,7 +20,7 @@ pub fn p1<F: BufRead>(schema: &mut F) -> u32 {
     result
 }
 
-pub fn p2<F: BufRead>(schema: &mut F) -> u32 {
+pub fn p2(schema: &mut impl BufRead) -> u32 {
     let mut result = 0;
     let parsed_schema = parser(schema, |s| {
         (scan_for_gears(s, is_gear_char), scan_for_numbers(s))
@@ -49,9 +49,8 @@ pub fn p2<F: BufRead>(schema: &mut F) -> u32 {
     result
 }
 
-fn parser<'a, F, E, P>(schema: &'a mut F, line_parser: P) -> impl Iterator<Item = E> + 'a
+fn parser<'a, P, E>(schema: &'a mut impl BufRead, line_parser: P) -> impl Iterator<Item = E> + 'a
 where
-    F: BufRead,
     P: Fn(&str) -> E + 'a,
     E: Default + 'a,
 {
