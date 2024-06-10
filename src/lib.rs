@@ -1,7 +1,5 @@
 use std::{cmp::min, io::BufRead};
 
-pub mod yt;
-
 pub fn p1<F: BufRead>(schema: &mut F) -> u32 {
     let mut result = 0;
     let parsed_schema = parser(schema, |s| {
@@ -30,7 +28,8 @@ pub fn p2<F: BufRead>(schema: &mut F) -> u32 {
     .collect::<Vec<_>>();
     for three_line_group in parsed_schema.windows(3) {
         for &gear_pos in &three_line_group[1].0 {
-            let found = three_line_group
+            let mut count = 0;
+            let product = three_line_group
                 .iter()
                 .flat_map(|line| &line.1)
                 .filter_map(|(start, end, number)| {
@@ -40,9 +39,10 @@ pub fn p2<F: BufRead>(schema: &mut F) -> u32 {
                         None
                     }
                 })
-                .collect::<Vec<_>>();
-            if found.len() > 1 {
-                result += found.iter().product::<u32>();
+                .inspect(|_| count += 1)
+                .product::<u32>();
+            if count > 1 {
+                result += product;
             }
         }
     }
